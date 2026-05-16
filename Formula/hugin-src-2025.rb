@@ -159,23 +159,32 @@ class HuginSrc2025 < Formula
     system "/usr/libexec/PlistBuddy", "-c", "Add :LSEnvironment:LANG string en_US.UTF-8",    plist.to_s rescue nil # rubocop:disable Style/RescueModifier
     system "/usr/libexec/PlistBuddy", "-c", "Add :LSEnvironment:LC_ALL string en_US.UTF-8",  plist.to_s rescue nil # rubocop:disable Style/RescueModifier
 
-    # ── Install ────────────────────────────────────────────────────────────────
-    (prefix/"Applications").install app
-    (prefix/"Applications").install buildpath/"build/src/hugin1/ptbatcher/PTBatcherGUI.app"
-    (prefix/"Applications").install buildpath/"build/src/hugin1/calibrate_lens/calibrate_lens_gui.app"
-    (prefix/"Applications").install buildpath/"build/src/hugin1/stitch_project/HuginStitchProject.app"
+    # ── Install into Cellar ────────────────────────────────────────────────────
+    [
+      app,  # Hugin.app — already a Pathname with Info.plist edits applied
+      buildpath/"build/src/hugin1/ptbatcher/PTBatcherGUI.app",
+      buildpath/"build/src/hugin1/calibrate_lens/calibrate_lens_gui.app",
+      buildpath/"build/src/hugin1/stitch_project/HuginStitchProject.app",
+    ].each { |a| (prefix/"Applications").install a }
+
+    # ── Symlink into ~/Applications so they appear in Spotlight/Launchpad ─────
+    # AIDEV-NOTE: ~/Applications is user-writable; symlinks update automatically
+    # on `brew upgrade` without needing sudo or a manual copy step.
+    home_apps = Pathname.new(Dir.home)/"Applications"
+    home_apps.mkpath
+    %w[Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app].each do |bundle|
+      target = home_apps/bundle
+      target.delete if target.exist? || target.symlink?
+      target.make_symlink(opt_prefix/"Applications"/bundle)
+    end
   end
 
   def caveats
     <<~EOS
-      Hugin.app has been installed to:
-        #{opt_prefix}/Applications/Hugin.app
+      Hugin.app has been symlinked into ~/Applications and should appear
+      in Spotlight immediately. If you prefer /Applications (system-wide):
 
-      To add it to your Applications folder run:
-        cp -R "#{opt_prefix}/Applications/Hugin.app" /Applications/
-
-      Or with symlink (updates automatically on reinstall):
-        ln -s "#{opt_prefix}/Applications/Hugin.app" ~/Applications/
+        sudo cp -R "#{opt_prefix}/Applications/Hugin.app" /Applications/
     EOS
   end
 

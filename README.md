@@ -23,10 +23,12 @@ brew tap danwald/hugin
 brew install hugin-src-2025
 ```
 
-Then copy (or symlink) to `/Applications`:
+That's it. Hugin.app (and the other apps) are automatically symlinked into `~/Applications` and will appear in Spotlight/Launchpad immediately. The symlinks update automatically on `brew upgrade`.
+
+If you'd prefer a system-wide install in `/Applications` instead:
 
 ```sh
-cp -R "$(brew --prefix hugin-src-2025)/Applications/Hugin.app" /Applications/
+sudo cp -R "$(brew --prefix hugin-src-2025)/Applications/Hugin.app" /Applications/
 ```
 
 ## What's included
