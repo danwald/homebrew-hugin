@@ -167,37 +167,29 @@ class HuginSrc2025 < Formula
       buildpath/"build/src/hugin1/stitch_project/HuginStitchProject.app",
     ].each { |a| (prefix/"Applications").install a }
 
-    # ── Install hugin-link helper ──────────────────────────────────────────────
-    # AIDEV-NOTE: Homebrew's sandbox blocks writes to ~/Applications during install.
-    # We install a small script to #{bin} instead; running it once after install
-    # creates the symlinks (and it's idempotent / safe to re-run after upgrade).
-    (bin/"hugin-link").write <<~SH
-      #!/bin/sh
-      # Links Hugin apps into ~/Applications so they appear in Spotlight/Launchpad.
-      # Safe to re-run after `brew upgrade hugin-src-2025`.
-      set -e
-      PREFIX="#{opt_prefix}/Applications"
-      DEST="$HOME/Applications"
-      mkdir -p "$DEST"
-      for app in Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app; do
-        rm -f "$DEST/$app"
-        ln -sf "$PREFIX/$app" "$DEST/$app"
-        echo "✅  Linked $app"
-      done
-      echo "Done — Hugin should appear in Spotlight within a few seconds."
-    SH
-    chmod 0755, bin/"hugin-link"
+  end
+
+  def post_install
+    # AIDEV-NOTE: post_install runs outside Homebrew's build sandbox with the
+    # user's real environment — the only place a formula can write to ~/Applications.
+    # Runs automatically after install and reinstall/upgrade.
+    home_apps = Pathname.new(Dir.home)/"Applications"
+    home_apps.mkpath
+    %w[Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app].each do |bundle|
+      target = home_apps/bundle
+      # AIDEV-NOTE: target may be a real directory (user previously copied the app)
+      # or a stale symlink — remove either before creating the managed symlink.
+      FileUtils.rm_rf(target) if target.exist? || target.symlink?
+      target.make_symlink(opt_prefix/"Applications"/bundle)
+    end
   end
 
   def caveats
     <<~EOS
-      Run once to add Hugin to ~/Applications (Spotlight/Launchpad):
+      Hugin has been symlinked into ~/Applications and should appear in
+      Spotlight/Launchpad immediately.
 
-        hugin-link
-
-      Re-run after `brew upgrade` to refresh the symlinks.
       For a system-wide install in /Applications instead:
-
         sudo cp -R "#{opt_prefix}/Applications/Hugin.app" /Applications/
     EOS
   end
