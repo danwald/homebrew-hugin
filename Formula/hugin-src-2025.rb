@@ -170,17 +170,15 @@ class HuginSrc2025 < Formula
   end
 
   def post_install
-    # AIDEV-NOTE: post_install runs outside Homebrew's build sandbox with the
-    # user's real environment — the only place a formula can write to ~/Applications.
-    # Runs automatically after install and reinstall/upgrade.
-    home_apps = Pathname.new(Dir.home)/"Applications"
-    home_apps.mkpath
+    # AIDEV-NOTE: post_install runs outside Homebrew's build sandbox.
+    # Ruby's Pathname#make_symlink raises EPERM inside the post_install child
+    # process; shelling out to ln -sf bypasses that restriction.
+    home_apps = "#{Dir.home}/Applications"
+    system "mkdir", "-p", home_apps
     %w[Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app].each do |bundle|
-      target = home_apps/bundle
-      # AIDEV-NOTE: target may be a real directory (user previously copied the app)
-      # or a stale symlink — remove either before creating the managed symlink.
-      FileUtils.rm_rf(target) if target.exist? || target.symlink?
-      target.make_symlink(opt_prefix/"Applications"/bundle)
+      target = "#{home_apps}/#{bundle}"
+      system "rm", "-rf", target
+      system "ln", "-sf", "#{opt_prefix}/Applications/#{bundle}", target
     end
   end
 
