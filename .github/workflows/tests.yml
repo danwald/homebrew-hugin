@@ -11,7 +11,8 @@ jobs:
     strategy:
       matrix:
         # macOS-only formula — Linux runner cannot build it and is excluded
-        os: [ macos-15, macos-15-xlarge ]
+        # macos-15 = arm64 (Apple Silicon), free standard runner
+        os: [ macos-15 ]
     runs-on: ${{ matrix.os }}
     permissions:
       actions: read
