@@ -21,11 +21,12 @@ Internal Hugin dylibs (`libhuginbase`, `libhuginbasewx`, `libceleste`, `libicpfi
 ```sh
 brew tap danwald/hugin
 brew install hugin-src-2025
+hugin-link
 ```
 
-That's it. Hugin.app (and the other apps) are automatically symlinked into `~/Applications` and will appear in Spotlight/Launchpad immediately. The symlinks update automatically on `brew upgrade`.
+`hugin-link` symlinks all four apps into `~/Applications` so they appear in Spotlight and Launchpad immediately. Re-run it after `brew upgrade hugin-src-2025` to refresh the symlinks.
 
-If you'd prefer a system-wide install in `/Applications` instead:
+For a system-wide install in `/Applications` instead:
 
 ```sh
 sudo cp -R "$(brew --prefix hugin-src-2025)/Applications/Hugin.app" /Applications/

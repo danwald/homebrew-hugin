@@ -167,22 +167,36 @@ class HuginSrc2025 < Formula
       buildpath/"build/src/hugin1/stitch_project/HuginStitchProject.app",
     ].each { |a| (prefix/"Applications").install a }
 
-    # ── Symlink into ~/Applications so they appear in Spotlight/Launchpad ─────
-    # AIDEV-NOTE: ~/Applications is user-writable; symlinks update automatically
-    # on `brew upgrade` without needing sudo or a manual copy step.
-    home_apps = Pathname.new(Dir.home)/"Applications"
-    home_apps.mkpath
-    %w[Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app].each do |bundle|
-      target = home_apps/bundle
-      target.delete if target.exist? || target.symlink?
-      target.make_symlink(opt_prefix/"Applications"/bundle)
-    end
+    # ── Install hugin-link helper ──────────────────────────────────────────────
+    # AIDEV-NOTE: Homebrew's sandbox blocks writes to ~/Applications during install.
+    # We install a small script to #{bin} instead; running it once after install
+    # creates the symlinks (and it's idempotent / safe to re-run after upgrade).
+    (bin/"hugin-link").write <<~SH
+      #!/bin/sh
+      # Links Hugin apps into ~/Applications so they appear in Spotlight/Launchpad.
+      # Safe to re-run after `brew upgrade hugin-src-2025`.
+      set -e
+      PREFIX="#{opt_prefix}/Applications"
+      DEST="$HOME/Applications"
+      mkdir -p "$DEST"
+      for app in Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app; do
+        rm -f "$DEST/$app"
+        ln -sf "$PREFIX/$app" "$DEST/$app"
+        echo "✅  Linked $app"
+      done
+      echo "Done — Hugin should appear in Spotlight within a few seconds."
+    SH
+    chmod 0755, bin/"hugin-link"
   end
 
   def caveats
     <<~EOS
-      Hugin.app has been symlinked into ~/Applications and should appear
-      in Spotlight immediately. If you prefer /Applications (system-wide):
+      Run once to add Hugin to ~/Applications (Spotlight/Launchpad):
+
+        hugin-link
+
+      Re-run after `brew upgrade` to refresh the symlinks.
+      For a system-wide install in /Applications instead:
 
         sudo cp -R "#{opt_prefix}/Applications/Hugin.app" /Applications/
     EOS
