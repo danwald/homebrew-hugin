@@ -167,26 +167,38 @@ class HuginSrc2025 < Formula
       buildpath/"build/src/hugin1/stitch_project/HuginStitchProject.app",
     ].each { |a| (prefix/"Applications").install a }
 
-  end
-
-  def post_install
-    # AIDEV-NOTE: post_install runs outside Homebrew's build sandbox.
-    # Ruby's Pathname#make_symlink raises EPERM inside the post_install child
-    # process; shelling out to ln -sf bypasses that restriction.
-    home_apps = "#{Dir.home}/Applications"
-    system "mkdir", "-p", home_apps
-    %w[Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app].each do |bundle|
-      target = "#{home_apps}/#{bundle}"
-      system "rm", "-rf", target
-      system "ln", "-sf", "#{opt_prefix}/Applications/#{bundle}", target
-    end
+    # ── Install hugin-link helper ──────────────────────────────────────────────
+    # AIDEV-NOTE: macOS sandboxes both install and post_install child processes,
+    # blocking writes to ~/Applications. hugin-link runs outside any sandbox
+    # when invoked directly by the user.
+    (bin/"hugin-link").write <<~SH
+      #!/bin/sh
+      # Symlinks Hugin apps into ~/Applications (Spotlight/Launchpad).
+      # Safe to re-run after `brew upgrade hugin-src-2025`.
+      set -e
+      PREFIX="#{opt_prefix}/Applications"
+      DEST="$HOME/Applications"
+      mkdir -p "$DEST"
+      for app in Hugin.app PTBatcherGUI.app calibrate_lens_gui.app HuginStitchProject.app; do
+        rm -rf "$DEST/$app"
+        ln -sf "$PREFIX/$app" "$DEST/$app"
+        echo "✅  $app"
+      done
+      echo "Done — Hugin should appear in Spotlight within a few seconds."
+    SH
+    chmod 0755, bin/"hugin-link"
   end
 
   def caveats
+    # AIDEV-NOTE: macOS sandboxes both the install and post_install child processes,
+    # blocking writes to ~/Applications. The hugin-link script ships in #{bin} and
+    # runs outside any sandbox when the user invokes it directly.
     <<~EOS
-      Hugin has been symlinked into ~/Applications and should appear in
-      Spotlight/Launchpad immediately.
+      Run once after install to add Hugin to ~/Applications (Spotlight/Launchpad):
 
+        hugin-link
+
+      Re-run after `brew upgrade hugin-src-2025` to refresh the symlinks.
       For a system-wide install in /Applications instead:
         sudo cp -R "#{opt_prefix}/Applications/Hugin.app" /Applications/
     EOS

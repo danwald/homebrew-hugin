@@ -23,7 +23,9 @@ brew tap danwald/hugin
 brew install hugin-src-2025
 ```
 
-That's it. Hugin.app (and the other apps) are automatically symlinked into `~/Applications` and appear in Spotlight/Launchpad immediately. The symlinks are refreshed automatically on `brew upgrade`.
+`hugin-link` symlinks all four apps into `~/Applications` so they appear in Spotlight and Launchpad immediately. Re-run it after `brew upgrade hugin-src-2025` to refresh the symlinks.
+
+> **Note:** macOS sandboxes the Homebrew install process and blocks writes to `~/Applications` — that's why `hugin-link` is a separate step rather than happening automatically.
 
 For a system-wide install in `/Applications` instead:
 
@@ -51,3 +53,4 @@ All tools (`nona`, `enblend`, `enfuse`, `exiftool`, `align_image_stack`, etc.) a
 - Requires macOS Catalina (10.15) or later.
 - ExifTool is pulled from the `exiftool` Homebrew formula.
 - If you already have Hugin installed via DMG, remove it first to avoid conflicts.
+
